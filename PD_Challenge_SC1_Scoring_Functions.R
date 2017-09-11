@@ -1,10 +1,16 @@
 # External Call:
-# PD_score_challenge(training_features, test_features, walk=TRUE, leaderboard=TRUE)
+# PD_score_challenge(training_features, test_features, walk=TRUE, leaderboard=TRUE, permute=FALSE, nperm=10000, filename="submission.csv", parentSynId="syn10695292", submissionSynId="")
 # where training_features is the training matrix
 # test_features is the test matrix
 # walk = TRUE for walk features, FALSE for rest features
 # leaderboard = TRUE for the leaderboard set, FALSE for final test set
+# permute = TRUE computes permutation p-values
+# nperm is the number of permutations for the p-value computation
+# filename is the name of the file written to Synapse
+# parentSynId is the parentId of the stored synapse file default: "syn10695292" 
+# submissionSynId is the synapse Id of the submission file
 #
+
 
 library(synapseClient)
 library(caret)
@@ -21,7 +27,7 @@ synapseLogin()
 
 
 
-PD_score_challenge<-function(training_features, test_features, walk=TRUE, leaderboard=TRUE, permute=FALSE, nperm=10000){
+PD_score_challenge<-function(training_features, test_features, walk=TRUE, leaderboard=TRUE, permute=FALSE, nperm=10000, filename="submission.csv", parentSynId="syn10695292", submissionSynId=NA){
   #manipulate incoming data into dataframe
   training_features<-as.data.frame(training_features)
   test_features<-as.data.frame(test_features)
@@ -57,7 +63,23 @@ PD_score_challenge<-function(training_features, test_features, walk=TRUE, leader
   #Score_model
   final_score<-score_model(mediantest, ensemble_model, featurenames, covs_num, covs_fac, permute, nperm)
   
-  return(final_score)
+  write.csv(final_score$predictions, filename, row.names=F, quote=F)
+  syn<-File(filename, parentId=parentSynId)
+  
+  if(!is.na(submissionSynId)){
+    syn<-synStore(syn, used=submissionSynId, 
+                executed='https://github.com/Sage-Bionetworks/PDbiomarkerChallengeScoring/blob/master/PD_Challenge_SC1_Scoring_Functions.R',
+                activityName = "Subchallenge 1 Scoring",
+                activityDescription = "Fit ensemble learning on training and predict on test.")
+  } else {
+    syn<-synStore(syn,
+                  executed='https://github.com/Sage-Bionetworks/PDbiomarkerChallengeScoring/blob/master/PD_Challenge_SC1_Scoring_Functions.R',
+                  activityName = "Subchallenge 1 Scoring",
+                  activityDescription = "Fit ensemble learning on training and predict on test.")
+  }
+  file.remove(filename)
+  
+  return(final_score$scores)
 }
 
 
