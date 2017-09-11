@@ -3,10 +3,11 @@ import rpy2.robjects as robjects
 import pandas as pd
 import os
 from rpy2.robjects import pandas2ri
+from csv import Sniffer
 pandas2ri.activate()
-filePath = os.path.join(os.path.dirname(os.path.abspath(__file__)),'PD_Challenge_SC1_Scoring_Functions.R') 
+filePath = os.path.join(os.path.dirname(os.path.abspath(__file__)),'PD_Challenge_SC1_Scoring_Functions.R')
 # filePath = os.path.join(os.path.dirname(os.path.abspath('PD_Challenge_SC1_Scoring_Functions.R')), 'PD_Challenge_SC1_Scoring_Functions.R')
-robjects.r("source('%s')" % filePath) 
+robjects.r("source('%s')" % filePath)
 PD_score_challenge = robjects.r('PD_score_challenge')
 
 ##-----------------------------------------------------------------------------
@@ -41,15 +42,20 @@ SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
 ##   evaluations = list(syn.getEvaluationByContentSource('syn3375314'))
 ## Configuring them here as a list will save a round-trip to the server
 ## every time the script starts and you can link the challenge queues to
-## the correct scoring/validation functions.  Predictions will be validated and 
+## the correct scoring/validation functions.  Predictions will be validated and
 
 def validate_func(submission, goldstandard_path):
     ## Read in submission (submission.filePath)
     ## Validate submission
-    ## MUST USE ASSERTION ERRORS!!! 
+    ## MUST USE ASSERTION ERRORS!!!
     ## Only assertion errors will be returned to participants, all other errors will be returned to the admin
     # CHECK: that the file is .tsv format
-
+    with open(submission.filePath, "r") as f:
+        try:
+            dialect = Sniffer().sniff(f.read(1024))
+            assert dialect.delimiter == "\t", "Submission file must be in .tsv format"
+        except Error: # Most likely an 'empty' submission. i.e. only recordsId column -- no obvious delimiter
+            assert False, "Unable to verify that the submission is in .tsv format (Are you submitting a file with only a recordId column?)"
     # CHECK: that the file isn't empty
     assert os.stat(submission.filePath).st_size > 0, "Prediction file can't be empty"
     # headers that are required (only recordId)
@@ -65,17 +71,22 @@ def validate_func(submission, goldstandard_path):
     # CHECK: all values other than recordId must be numeric
     pred1 = pred.ix[:, pred.columns != 'recordId'] # get all columns except recordId
     foo = pred1.applymap(lambda x: isinstance(x, float)) # convert all values to True/False depending on if they're a float or not
-    assert all(foo.apply(lambda x: all(x))), "All values except recordId must be numeric" # fail if there is a False 
+    assert all(foo.apply(lambda x: all(x))), "All values except recordId must be numeric" # fail if there is a False
 
     # CHECK: all recordIds are present (syn10626200)
+    test_submission = syn.get("syn10626200")
+    record_ids = set(pd.read_csv(test_submission.path, header=0).recordId)
+    user_record_ids = set(pred.recordId)
+    for i in recordIds:
+        assert i in user_record_ids, "Not all recordIds are present in column recordId"
 
     # get list of everyone that has access to data (AR 9602969)
     # only grabs 50 at a time, need to go through all the pages to get all the IDs
     # need to use admin account (set up ec2 machine with admin credentials)
     accessList = syn.restGET('https://repo-prod.prod.sagebase.org/repo/v1/entity/syn10146553/accessApproval')
 
-    # All members of a team must have access to data (AR 9602969)
-    listy = syn.getSubmission(submission.id).contributors 
+    # TODO: All members of a team must have access to data (AR 9602969)
+    listy = syn.getSubmission(submission.id).contributors
     members = [x['principalId'] for x in listy]
 
     return(True,"Passed Validation")
@@ -84,7 +95,7 @@ def score_subchallenge_one(submission, goldstandard):
     import pandas as pd
     import synapseclient
     syn = synapseclient.login()
-    # read in submission 
+    # read in submission
     pred = pd.read_csv(submission.filePath)
     # read in gold standard
     # gold = pd.read_csv(goldstandard)
