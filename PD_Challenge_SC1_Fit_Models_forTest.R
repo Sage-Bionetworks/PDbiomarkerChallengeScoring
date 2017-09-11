@@ -1,5 +1,5 @@
 # External Call:
-# PD_score_challenge1(training_features, test_features)
+# PD_score_challenge1(training_features)
 # where training_features is a data frame with the training matrix
 # MUST CONTAIN recordId IN 1st COLUMN
 
