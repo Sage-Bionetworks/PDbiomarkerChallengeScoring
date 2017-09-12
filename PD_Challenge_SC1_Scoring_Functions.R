@@ -50,10 +50,13 @@ PD_score_challenge<-function(training_features, test_features, walk=TRUE, leader
   dttrain<-data.table(training_features)
   mediantraining<-dttrain[, lapply(.SD, median, na.rm=TRUE), by=groupvariables, .SDcols=featurenames ]
   mediantraining<-as.data.frame(mediantraining)
+  mediantraining$gender<-as.factor(mediantraining$gender, levels=c("Female", "Male"))
   
   dttest<-data.table(test_features)
   mediantest<-dttest[, lapply(.SD, median, na.rm=TRUE), by=groupvariables, .SDcols=featurenames ]
   mediantest<-as.data.frame(mediantest)
+  mediantest$gender<-as.factor(mediantest$gender, levels=c("Female", "Male"))
+  
   
   print("Fitting the model")
   #Fit model
