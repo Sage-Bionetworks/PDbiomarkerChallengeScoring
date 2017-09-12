@@ -19,14 +19,14 @@ PD_score_challenge = robjects.r('PD_score_challenge')
 ## A Synapse project will hold the assets for your challenge. Put its
 ## synapse ID here, for example
 ## CHALLENGE_SYN_ID = "syn1234567"
-CHALLENGE_SYN_ID = ""
+CHALLENGE_SYN_ID = "syn8717496"
 
 ## Name of your challenge, defaults to the name of the challenge's project
-CHALLENGE_NAME = ""
+CHALLENGE_NAME = "Parkinsons Disease Digital Biomarker DREAM Challenge"
 
 ## Synapse user IDs of the challenge admins who will be notified by email
 ## about errors in the scoring script
-ADMIN_USER_IDS = []
+ADMIN_USER_IDS = [3337572]
 SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -49,21 +49,21 @@ def validate_func(submission, goldstandard_path):
     ## Validate submission
     ## MUST USE ASSERTION ERRORS!!!
     ## Only assertion errors will be returned to participants, all other errors will be returned to the admin
-    # CHECK: that the file is .tsv format
+    # CHECK: that the file is .csv format
     with open(submission.filePath, "r") as f:
         try:
             dialect = Sniffer().sniff(f.read(1024))
-            assert dialect.delimiter == "\t", "Submission file must be in .tsv format"
-        except Error: # Most likely an 'empty' submission. i.e. only recordsId column -- no obvious delimiter
-            assert False, "Unable to verify that the submission is in .tsv format (Are you submitting a file with only a recordId column?)"
+            assert dialect.delimiter == ",", "Submission file must be in .csv format"
+        except Error: # Most likely an 'empty' submission. i.e. only recordId column -- no obvious delimiter
+            assert False, "Unable to verify that the submission is in .csv format (Are you submitting a file with only a recordId column?)"
     # CHECK: that the file isn't empty
     assert os.stat(submission.filePath).st_size > 0, "Prediction file can't be empty"
     # headers that are required (only recordId)
     REQUIRED_HEADERS = ["recordId"]
     # read in submission file
-    pred = pd.read_csv(submission.filePath, sep='\t')
+    pred = pd.read_csv(submission.filePath)
     # CHECK: All required headers exist
-    assert all([i in pred.columns for i in REQUIRED_HEADERS]), "submission file must have header: recordId"
+    assert all([i in pred.columns for i in REQUIRED_HEADERS]), "Submission file must have header: recordId"
     # CHECK: No duplicate samples allowed
     assert sum(pred['recordId'].duplicated()) == 0, "No duplicated submissions allowed"
     # CHECK: No NA's are allowed
@@ -74,20 +74,30 @@ def validate_func(submission, goldstandard_path):
     assert all(foo.apply(lambda x: all(x))), "All values except recordId must be numeric" # fail if there is a False
 
     # CHECK: all recordIds are present (syn10626200)
-    test_submission = syn.get("syn10626200")
-    record_ids = set(pd.read_csv(test_submission.path, header=0).recordId)
+    test_submission = syn.get("syn10626200") # file with all the recordIds
+    record_ids = set(pd.read_csv(test_submission.path, header=0).recordId) # get just the recordID column
     user_record_ids = set(pred.recordId)
     for i in recordIds:
-        assert i in user_record_ids, "Not all recordIds are present in column recordId"
+        assert i in user_record_ids, "Not all recordIds are present in column: recordId"
 
     # get list of everyone that has access to data (AR 9602969)
     # only grabs 50 at a time, need to go through all the pages to get all the IDs
     # need to use admin account (set up ec2 machine with admin credentials)
-    accessList = syn.restGET('https://repo-prod.prod.sagebase.org/repo/v1/entity/syn10146553/accessApproval')
 
-    # TODO: All members of a team must have access to data (AR 9602969)
-    listy = syn.getSubmission(submission.id).contributors
-    members = [x['principalId'] for x in listy]
+    accessIdList = []
+    for i in range(0, 500, 50):
+        bar = syn.restGET('https://repo-prod.prod.sagebase.org/repo/v1/entity/syn10146553/accessApproval?limit=50&offset=%s' %i) # REST call of everyone with access
+        accessIds = [b['accessorId'] for b in bar['results']] # get userId
+            accessIdList.append(accessIds)  # append ids to list
+
+    accessList = [item for nestedList in accessIdList for item in nestedList] # un-nest the nested list        
+
+    # All members of a team must have access to data (AR 9602969)
+    listy = syn.getSubmission(submission.id).contributors # get info on the contributors of the team
+    members = [x['principalId'] for x in listy] # this gets the ids of the members of the team
+
+    temp = [item for item in members if item not in accessList] # if the team member is not part of the access list, store them to a list
+    assert len(temp == 0), ("Not all members have access to the data. Please verify that " + temp + " all have gone through the full validation process.")
 
     return(True,"Passed Validation")
 
@@ -112,7 +122,7 @@ def score2(submission, goldstandard_path):
 
 evaluation_queues = [
     {
-        'id': numerical_queue_number, # mpower
+        'id': 9606387, # this one will be mpower, currently it's a testQueue!
         'scoring_func':score_subchallenge_one,
         'validation_func':validate_func,
         'goldstandard_path':'path/to/sc1gold.txt'
@@ -193,5 +203,3 @@ def score_submission(evaluation, submission):
     score = config['scoring_func'](submission, config['goldstandard_path'])
     #Make sure to round results to 3 or 4 digits
     return (dict(score=round(score[0],4), rmse=score[1], auc=score[2]), "You did fine!")
-
-
