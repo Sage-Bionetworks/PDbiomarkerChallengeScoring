@@ -117,11 +117,13 @@ def score_subchallenge_one(submission, goldstandard):
     syn = synapseclient.login()
     # read in submission
     # pred = pd.read_csv(submission.filePath)
+    pred = submission.filePath
+
     # get submission synId for provenance
     submissionId = submission.entityId
 
     # score the submission
-    score_challenge = PD_score_challenge(submission.filePath, walk=True, leaderboard=True, permute=False, nperm=10000, filename='submission.csv', parentSynId="syn10347832", submissionSynId=submissionId)
+    score_challenge = PD_score_challenge(pred, walk=True, leaderboard=True, permute=False, nperm=10000, filename='submission.csv', parentSynId="syn10347832", submissionSynId=submissionId)
 
     # Return the score
     return(score_challenge)
@@ -211,6 +213,6 @@ def score_submission(evaluation, submission):
               is text for display to user
     """
     config = evaluation_queue_by_id[int(evaluation.id)]
-    score = config['scoring_func'](submission, config['goldstandard_path'])
+    auc, pval = config['scoring_func'](submission, config['goldstandard_path'])
     #Make sure to round results to 3 or 4 digits
-    return (dict(score=round(score[0],4), rmse=score[1], auc=score[2]), "You did fine!")
+    return (dict(auroc=auc[0], pval=pval[0]), "You did fine!")
