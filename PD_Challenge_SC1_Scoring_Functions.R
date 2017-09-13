@@ -12,22 +12,36 @@
 #
 
 
-library(synapseClient)
-library(caret)
-library(caretEnsemble)
-library(pROC)
-library(glmnet)
-library(e1071)
-library(randomForest)
-library(kernlab)
-library(nnet)
-library(data.table)
+suppressMessages(library(synapseClient))
+suppressMessages(library(caret))
+suppressMessages(library(caretEnsemble))
+suppressMessages(library(pROC))
+suppressMessages(library(glmnet))
+suppressMessages(library(e1071))
+suppressMessages(library(randomForest))
+suppressMessages(library(kernlab))
+suppressMessages(library(nnet))
+suppressMessages(library(data.table))
+suppressMessages(library(dplyr))
 
-synapseLogin()
+suppressMessages(synapseLogin())
 
 
 
-PD_score_challenge<-function(training_features, test_features, walk=TRUE, leaderboard=TRUE, permute=FALSE, nperm=10000, filename="submission.csv", parentSynId="syn10695292", submissionSynId=NA){
+PD_score_challenge<-function(submission, walk=TRUE, leaderboard=TRUE, permute=FALSE, nperm=10000, filename="submission.csv", parentSynId="syn10695292", submissionSynId=NA){
+  # read in submission and create dataframes in R to avoid pandas -> R conversion issues
+  pred <- read.csv(submission)
+  split_file <- read.csv('RecordId_key_for_scoring_final.csv')
+  test_temp <- split_file %>%
+    filter(Training_or_Test == 'Test') %>%
+    select(-c(Scored, Training_or_Test))
+  train_temp <- split_file %>%
+    filter(Training_or_Test == 'Training') %>%
+    select(-c(Scored, Training_or_Test))
+  test_features <- merge(test_temp, pred, by='recordId', all.x = TRUE)
+  training_features <- merge(train_temp, pred, by='recordId', all.x = TRUE)
+
+  
   #manipulate incoming data into dataframe
   training_features<-as.data.frame(training_features)
   test_features<-as.data.frame(test_features)
@@ -50,12 +64,12 @@ PD_score_challenge<-function(training_features, test_features, walk=TRUE, leader
   dttrain<-data.table(training_features)
   mediantraining<-dttrain[, lapply(.SD, median, na.rm=TRUE), by=groupvariables, .SDcols=featurenames ]
   mediantraining<-as.data.frame(mediantraining)
-  mediantraining$gender<-as.factor(mediantraining$gender, levels=c("Female", "Male"))
+  mediantraining$gender<-factor(mediantraining$gender, levels=c("Female", "Male"))
   
   dttest<-data.table(test_features)
   mediantest<-dttest[, lapply(.SD, median, na.rm=TRUE), by=groupvariables, .SDcols=featurenames ]
   mediantest<-as.data.frame(mediantest)
-  mediantest$gender<-as.factor(mediantest$gender, levels=c("Female", "Male"))
+  mediantest$gender<-factor(mediantest$gender, levels=c("Female", "Male"))
   
   
   print("Fitting the model")
@@ -65,9 +79,11 @@ PD_score_challenge<-function(training_features, test_features, walk=TRUE, leader
   print("Scoring the model")
   #Score_model
   final_score<-score_model(mediantest, ensemble_model, featurenames, covs_num, covs_fac, permute, nperm)
+  print(final_score$scores)
   
-  write.csv(final_score$predictions, filename, row.names=F, quote=F)
+  suppressWarnings(write.csv(final_score$predictions, filename, row.names=F, quote=F))
   syn<-File(filename, parentId=parentSynId)
+  print(syn) # remove
   
   if(!is.na(submissionSynId)){
     syn<-synStore(syn, used=submissionSynId, 
@@ -82,7 +98,10 @@ PD_score_challenge<-function(training_features, test_features, walk=TRUE, leader
   }
   file.remove(filename)
   
-  return(final_score$scores)
+  auroc <- final_score$scores['AUROC']
+  pval <- final_score$scores['pval']
+  
+  return(list(auroc, pval))
 }
 
 
@@ -198,10 +217,5 @@ score_model<-function(testing, ensemble_model, featurenames, covs_num, covs_fac,
   res<-list(scores=c(AUROC=score, pval=perm), predictions=predframe)
   return(res)
 }
-
-
-
-  
-  
 
 
