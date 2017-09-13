@@ -125,7 +125,7 @@ def score2(submission, goldstandard_path):
 
 evaluation_queues = [
     {
-        'id': 9606387, # this one will be mpower, currently it's a testQueue!
+        'id': 9606375, # mpower
         'scoring_func':score_subchallenge_one,
         'validation_func':validate_func,
         'goldstandard_path':'path/to/sc1gold.txt'
