@@ -10,6 +10,13 @@ filePath = os.path.join(os.path.dirname(os.path.abspath(__file__)),'PD_Challenge
 robjects.r("source('%s')" % filePath)
 PD_score_challenge = robjects.r('PD_score_challenge')
 
+
+########### login to synapse
+########### This part needs to be changed to read from the syanpseConfig file on the machine
+import synapseclient
+syn = synapseclient.login('pdbiochallenge.admin@sagebase.org','challengemethis')
+
+
 ##-----------------------------------------------------------------------------
 ##
 ## challenge specific code and configuration
@@ -50,12 +57,15 @@ def validate_func(submission, goldstandard_path):
     ## MUST USE ASSERTION ERRORS!!!
     ## Only assertion errors will be returned to participants, all other errors will be returned to the admin
     # CHECK: that the file is .csv format
-    with open(submission.filePath, "r") as f:
-        try:
-            dialect = Sniffer().sniff(f.read(1024))
-            assert dialect.delimiter == ",", "Submission file must be in .csv format"
-        except Error: # Most likely an 'empty' submission. i.e. only recordId column -- no obvious delimiter
-            assert False, "Unable to verify that the submission is in .csv format (Are you submitting a file with only a recordId column?)"
+    assert submission.entity.contentType == 'text/csv', "Submission file must be in .csv format"
+
+
+    # with open(submission.filePath, "r") as f:
+    #     try:
+    #         dialect = Sniffer().sniff(f.read(1024))
+    #         assert dialect.delimiter == ",", "Submission file must be in .csv format"
+    #     except Error: # Most likely an 'empty' submission. i.e. only recordId column -- no obvious delimiter
+    #         assert False, "Unable to verify that the submission is in .csv format (Are you submitting a file with only a recordId column?)"
     # CHECK: that the file isn't empty
     assert os.stat(submission.filePath).st_size > 0, "Prediction file can't be empty"
     # headers that are required (only recordId)
@@ -74,10 +84,10 @@ def validate_func(submission, goldstandard_path):
     assert all(foo.apply(lambda x: all(x))), "All values except recordId must be numeric" # fail if there is a False
 
     # CHECK: all recordIds are present (syn10626200)
-    test_submission = syn.get("syn10626200") # file with all the recordIds
-    record_ids = set(pd.read_csv(test_submission.path, header=0).recordId) # get just the recordID column
+    test_submission =  os.getcwd() + '/recordID_File.csv' # file with all the recordIds
+    record_ids = set(pd.read_csv(test_submission, header=0).recordId) # get just the recordID column
     user_record_ids = set(pred.recordId)
-    for i in recordIds:
+    for i in record_ids:
         assert i in user_record_ids, "Not all recordIds are present in column: recordId"
 
     # get list of everyone that has access to data (AR 9602969)
@@ -88,7 +98,7 @@ def validate_func(submission, goldstandard_path):
     for i in range(0, 500, 50):
         bar = syn.restGET('https://repo-prod.prod.sagebase.org/repo/v1/entity/syn10146553/accessApproval?limit=50&offset=%s' %i) # REST call of everyone with access
         accessIds = [b['accessorId'] for b in bar['results']] # get userId
-            accessIdList.append(accessIds)  # append ids to list
+        accessIdList.append(accessIds)  # append ids to list
 
     accessList = [item for nestedList in accessIdList for item in nestedList] # un-nest the nested list        
 
@@ -97,7 +107,7 @@ def validate_func(submission, goldstandard_path):
     members = [x['principalId'] for x in listy] # this gets the ids of the members of the team
 
     temp = [item for item in members if item not in accessList] # if the team member is not part of the access list, store them to a list
-    assert len(temp == 0), ("Not all members have access to the data. Please verify that " + temp + " all have gone through the full validation process.")
+    assert temp ==[], ("Not all members have access to the data. Please verify that " + str(temp) + " have gone through the full validation process.")
 
     return(True,"Passed Validation")
 
@@ -106,13 +116,14 @@ def score_subchallenge_one(submission, goldstandard):
     import synapseclient
     syn = synapseclient.login()
     # read in submission
-    pred = pd.read_csv(submission.filePath)
-    # read in gold standard
-    # gold = pd.read_csv(goldstandard)
+    # pred = pd.read_csv(submission.filePath)
+    # get submission synId for provenance
+    submissionId = submission.entityId
 
-    score_challenge = PD_score_challenge(train, test, walk=True, leaderboard=True)
+    # score the submission
+    score_challenge = PD_score_challenge(submission.filePath, walk=True, leaderboard=True, permute=False, nperm=10000, filename='submission.csv', parentSynId="syn10347832", submissionSynId=submissionId)
 
-    ##Return the score
+    # Return the score
     return(score_challenge)
 
 def score2(submission, goldstandard_path):
