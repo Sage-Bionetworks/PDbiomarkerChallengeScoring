@@ -14,7 +14,7 @@ PD_score_challenge = robjects.r('PD_score_challenge')
 ########### login to synapse
 ########### This part needs to be changed to read from the syanpseConfig file on the machine
 import synapseclient
-syn = synapseclient.login('pdbiochallenge.admin@sagebase.org','challengemethis')
+syn = synapseclient.login()
 
 
 ##-----------------------------------------------------------------------------
