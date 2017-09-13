@@ -18,7 +18,7 @@ dry_run = False
 defaults = dict(
     challenge_instructions_url = "https://www.synapse.org/#!Synapse:syn8717496/wiki/448338",
     support_forum_url = "https://www.synapse.org/#!Synapse:syn8717496/discussion/default",
-    scoring_script = "PDBiomarker DREAM Challenge Administrator")
+    scoring_script = "PDBiomarker DREAM Challenge Administrators")
 
 ##---------------------------------------------------------
 ## Message templates:
