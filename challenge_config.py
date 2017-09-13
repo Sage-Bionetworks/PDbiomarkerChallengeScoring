@@ -14,7 +14,7 @@ PD_score_challenge = robjects.r('PD_score_challenge')
 ########### login to synapse
 ########### This part needs to be changed to read from the syanpseConfig file on the machine
 import synapseclient
-syn = synapseclient.login('pdbiochallenge.admin@sagebase.org','challengemethis')
+syn = synapseclient.login()
 
 
 ##-----------------------------------------------------------------------------
@@ -125,7 +125,7 @@ def score2(submission, goldstandard_path):
 
 evaluation_queues = [
     {
-        'id': 9606387, # this one will be mpower, currently it's a testQueue!
+        'id': 9606375, # mpower
         'scoring_func':score_subchallenge_one,
         'validation_func':validate_func,
         'goldstandard_path':'path/to/sc1gold.txt'
