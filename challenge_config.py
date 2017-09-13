@@ -59,13 +59,6 @@ def validate_func(submission, goldstandard_path):
     # CHECK: that the file is .csv format
     assert submission.entity.contentType == 'text/csv', "Submission file must be in .csv format"
 
-
-    # with open(submission.filePath, "r") as f:
-    #     try:
-    #         dialect = Sniffer().sniff(f.read(1024))
-    #         assert dialect.delimiter == ",", "Submission file must be in .csv format"
-    #     except Error: # Most likely an 'empty' submission. i.e. only recordId column -- no obvious delimiter
-    #         assert False, "Unable to verify that the submission is in .csv format (Are you submitting a file with only a recordId column?)"
     # CHECK: that the file isn't empty
     assert os.stat(submission.filePath).st_size > 0, "Prediction file can't be empty"
     # headers that are required (only recordId)
@@ -91,9 +84,6 @@ def validate_func(submission, goldstandard_path):
         assert i in user_record_ids, "Not all recordIds are present in column: recordId"
 
     # get list of everyone that has access to data (AR 9602969)
-    # only grabs 50 at a time, need to go through all the pages to get all the IDs
-    # need to use admin account (set up ec2 machine with admin credentials)
-
     accessIdList = []
     for i in range(0, 500, 50):
         bar = syn.restGET('https://repo-prod.prod.sagebase.org/repo/v1/entity/syn10146553/accessApproval?limit=50&offset=%s' %i) # REST call of everyone with access
