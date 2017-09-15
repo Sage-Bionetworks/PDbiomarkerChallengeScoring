@@ -42,10 +42,10 @@ PD_score_challenge<-function(submission, walk=TRUE, leaderboard=TRUE, permute=FA
   test_features<-pred[match(test_temp,pred[,1]),]
   training_features<-pred[match(train_temp,pred[,1]),]
   
-  if(any(!pred[,1]%in%train_temp)){
+  if(!all(train_temp %in% pred[,1])){
     print("MISSING recordId(s) in Training")
   }
-  if(any(!pred[,1]%in%test_temp)){
+  if(!all(test_temp %in% pred[,1])){
     print("MISSING recordId(s) in Test")
   }
   
