@@ -30,17 +30,25 @@ suppressMessages(synapseLogin())
 
 PD_score_challenge<-function(submission, walk=TRUE, leaderboard=TRUE, permute=FALSE, nperm=10000, filename="submission.csv", parentSynId="syn10695292", submissionSynId=NA){
   # read in submission and create dataframes in R to avoid pandas -> R conversion issues
-  pred <- read.csv(submission)
-  split_file <- read.csv('RecordId_key_for_scoring_final.csv')
-  test_temp <- split_file %>%
-    filter(Training_or_Test == 'Test') %>%
-    select(-c(Scored, Training_or_Test))
-  train_temp <- split_file %>%
-    filter(Training_or_Test == 'Training') %>%
-    select(-c(Scored, Training_or_Test))
-  test_features <- merge(test_temp, pred, by='recordId', all.x = TRUE)
-  training_features <- merge(train_temp, pred, by='recordId', all.x = TRUE)
-
+  pred <- read.csv(submission, header=T, as.is=T)
+  split_file <- read.csv('RecordId_key_for_scoring_final.csv', header=T, as.is=T)
+  test_temp <- split_file$recordId[split_file$Scored==TRUE&split_file$Training_or_Test=="Test"]
+  
+  train_temp <- split_file$recordId[split_file$Scored==TRUE&split_file$Training_or_Test=="Training"] #<- split_file %>%
+#    filter(Training_or_Test == 'Training') %>%
+#    select(-c(Scored, Training_or_Test))
+#  test_features <- merge(test_temp, pred, by='recordId', all.x = TRUE)
+#  training_features <- merge(train_temp, pred, by='recordId', all.x = TRUE)
+  test_features<-pred[match(test_temp,pred[,1]),]
+  training_features<-pred[match(train_temp,pred[,1]),]
+  
+  if(any(!pred[,1]%in%train_temp)){
+    print("MISSING recordId(s) in Training")
+  }
+  if(any(!pred[,1]%in%test_temp)){
+    print("MISSING recordId(s) in Test")
+  }
+  
   
   #manipulate incoming data into dataframe
   training_features<-as.data.frame(training_features)
