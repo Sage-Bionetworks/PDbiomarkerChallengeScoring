@@ -242,7 +242,7 @@ score_model<-function(testing, ensemble_model, featurenames, covs_num, covs_fac,
   perm=NA
   if(permute){
     permauc<-replicate(nperm, roc(ifelse(testoutcome=="PD",1,0), sample(preds_greedensemble))$auc)
-    perm<-(sum(score>=permauc)+1)/(nperm+1)
+    perm<-(sum(score<=permauc)+1)/(nperm+1)
   }
   res<-list(scores=c(AUROC=score, pval=perm), predictions=predframe)
   return(res)
