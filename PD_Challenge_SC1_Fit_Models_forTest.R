@@ -64,7 +64,10 @@ download_merge_covariate<-function(features){
   
   # Merge Data
   mergeddata<-cbind(demos, features[match(demos$recordId.walktest, features[,1]), -1])
-
+  if(dim(features)[2]==2){
+    names(mergeddata)[dim(mergeddata)[2]]<-names(features)[2]
+  }
+  
   return(mergeddata)
 }
 
