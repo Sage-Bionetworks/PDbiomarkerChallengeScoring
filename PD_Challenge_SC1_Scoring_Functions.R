@@ -142,6 +142,9 @@ download_merge_covariate<-function(features, walk=TRUE, leaderboard=FALSE, train
   # Merge Data
   if(walk){
     mergeddata<-cbind(demos, features[match(demos$recordId.walktest, features[,1]), -1])
+    if(dim(features)[2]==2){
+      names(mergeddata)[dim(mergeddata)[2]]<-names(features)[2]
+    }
     if(!all(demos$recordId.walktest %in% features[,1])){
       print("recordIds missing when compared to Demo File")
       if(training){
@@ -152,6 +155,9 @@ download_merge_covariate<-function(features, walk=TRUE, leaderboard=FALSE, train
     }
   } else {
     mergeddata<-cbind(demos, features[match(demos$recordId.resttest, features[,1]), -1])
+    if(dim(features)[2]==2){
+      names(mergeddata)[dim(mergeddata)[2]]<-names(features)[2]
+    }
     if(!all(demos$recordId.walktest %in% features[,1])){
       print("recordIds missing when compared to Demo File")
       if(training){
