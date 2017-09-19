@@ -37,7 +37,7 @@ PD_score_challenge1<-function(training_features){
 
   ensemble_model<-NULL
   
-  if(any(is.na(training_features))){
+  if(any(is.na(training_features[,featurenames]))){
     print("WARNING: Missing values/records not allowed!")
   } else {
     dttrain<-data.table(training_features)
