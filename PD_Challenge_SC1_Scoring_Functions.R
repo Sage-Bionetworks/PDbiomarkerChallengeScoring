@@ -31,6 +31,7 @@ suppressMessages(synapseLogin())
 PD_score_challenge<-function(submission, walk=TRUE, leaderboard=TRUE, permute=FALSE, nperm=10000, filename="submission.csv", parentSynId="syn10695292", submissionSynId=NA){
   # read in submission and create dataframes in R to avoid pandas -> R conversion issues
   pred <- read.csv(submission, header=T, as.is=T)
+  names(pred)[-1]<-paste(names(pred)[-1],"sub", sep=".")
   split_file <- read.csv('RecordId_key_for_scoring_final.csv', header=T, as.is=T)
   test_temp <- split_file$recordId[split_file$Scored==TRUE&split_file$Training_or_Test=="Test"]
   
