@@ -33,7 +33,7 @@ CHALLENGE_NAME = "Parkinsons Disease Digital Biomarker DREAM Challenge"
 
 ## Synapse user IDs of the challenge admins who will be notified by email
 ## about errors in the scoring script
-ADMIN_USER_IDS = [3337572]
+ADMIN_USER_IDS = [123456]
 SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
